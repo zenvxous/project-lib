@@ -1,0 +1,41 @@
+services:
+  identity-db:
+    image: postgres:16-alpine
+    container_name: identity_postgres
+    restart: unless-stopped
+    secrets:
+      - identity_db_name
+      - identity_db_user
+      - identity_db_password
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/identity_db_name
+      POSTGRES_USER_FILE: /run/secrets/identity_db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/identity_db_password
+    ports:
+      - "${IDENTITY_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/identity_db_user) -d $$(cat /run/secrets/identity_db_name)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - identity-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  identity-network:
+    driver: bridge
+
+secrets:
+  identity_db_name:
+    file: ./secrets/identity_db_name.txt
+  identity_db_user:
+    file: ./secrets/identity_db_user.txt
+  identity_db_password:
+    file: ./secrets/identity_db_password.txt
